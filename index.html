@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1f3f8f">
+<title>Isaac Class</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=Cairo:wght@400;600&display=swap">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font-size: 14px; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+
+/* Layout: sticky tab strip over one working view at a time (roll call list on phones, full grid on request). */
+:root {
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --surface2: #e8ecf4;
+  --fg: #151c2c;
+  --muted: #5b6578;
+  --line: #d8dfeb;
+  --accent: #1f3f8f;
+  --accent-fg: #ffffff;
+  --accent-soft: #dfe7fa;
+  --ok: #17734d;
+  --ok-bg: #d9f1e5;
+  --bad: #a8261d;
+  --bad-bg: #fbe2df;
+  --gold: #8a5d00;
+  --gold-bg: #f6e8c6;
+  --font-display: "Space Grotesk", Inter, system-ui, sans-serif;
+  --font-body: Inter, Cairo, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1420; --surface: #172033; --surface2: #222c42; --fg: #e8ecf5; --muted: #9ca7bd;
+    --line: #2b3652; --accent: #8fb0ff; --accent-fg: #0f1420; --accent-soft: #1f2d52;
+    --ok: #62d39c; --ok-bg: #143a2a; --bad: #ff8f85; --bad-bg: #40191a; --gold: #e6bb52; --gold-bg: #3a2f12;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1420; --surface: #172033; --surface2: #222c42; --fg: #e8ecf5; --muted: #9ca7bd;
+  --line: #2b3652; --accent: #8fb0ff; --accent-fg: #0f1420; --accent-soft: #1f2d52;
+  --ok: #62d39c; --ok-bg: #143a2a; --bad: #ff8f85; --bad-bg: #40191a; --gold: #e6bb52; --gold-bg: #3a2f12;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+.wrap { max-width: 780px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* top */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 18px 10px; }
+.top h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.top .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.status { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); border: 1px solid var(--line); background: var(--surface); padding: 5px 10px; border-radius: 99px; white-space: nowrap; }
+.status i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: block; }
+.status.live i { background: var(--ok); }
+.status.bad i { background: var(--bad); }
+
+/* tabs */
+.tabsbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); padding-block: 6px 10px; }
+.tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs a { flex: none; padding: 8px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); text-decoration: none; font-size: 14px; font-weight: 500; }
+.tabs a[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+
+main { padding-block: 6px 56px; display: flex; flex-direction: column; gap: 14px; }
+.ro .edit-only { display: none !important; }
+
+/* shared pieces */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+.panel h2 { font-size: 15px; margin-bottom: 10px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.stat b { display: block; font-family: var(--font-display); font-size: 22px; font-weight: 600; line-height: 1.15; }
+.stat span { font-size: 12px; color: var(--muted); }
+.seg { display: inline-flex; background: var(--surface2); border-radius: 10px; padding: 3px; gap: 2px; max-width: 100%; overflow-x: auto; }
+.seg button { border: 0; background: transparent; padding: 7px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 14px; font-size: 14px; font-weight: 500; min-height: 40px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.btn.small { padding: 6px 10px; min-height: 32px; font-size: 13px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.muted { color: var(--muted); }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--surface2); color: var(--muted); }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); }
+.pill.warn { background: var(--gold-bg); color: var(--gold); }
+.bar { height: 6px; border-radius: 99px; background: var(--surface2); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+.empty { text-align: center; padding: 36px 16px; color: var(--muted); }
+.empty h2 { color: var(--fg); margin-bottom: 6px; font-size: 18px; }
+
+/* roll call */
+.weekbar { display: grid; grid-template-columns: 44px 1fr 44px; gap: 8px; align-items: center; }
+.weekbar select { width: 100%; min-height: 44px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 10px; padding: 0 12px; font: inherit; font-weight: 600; }
+.weekbar .btn { padding: 0; width: 44px; min-height: 44px; font-size: 18px; }
+.rollhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.roll { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.roll li + li { border-top: 1px solid var(--line); }
+.roll button.person { width: 100%; display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 10px 14px; min-height: 56px; border: 0; background: transparent; text-align: left; }
+.roll .nm { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.roll .nm small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.tick { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 700; font-size: 16px; color: transparent; }
+.roll li.on { background: var(--ok-bg); }
+.roll li.on .tick { background: var(--ok); border-color: var(--ok); color: #fff; }
+.roll li.on .nm small { color: var(--ok); }
+
+/* grid */
+.gridwrap { overflow: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); max-height: 70vh; }
+table.grid { border-collapse: separate; border-spacing: 0; font-size: 12px; }
+table.grid th, table.grid td { padding: 0; height: 34px; min-width: 36px; text-align: center; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); background: var(--surface); }
+table.grid thead th { position: sticky; top: 0; z-index: 2; height: 44px; font-weight: 500; color: var(--muted); line-height: 1.15; background: var(--surface2); }
+table.grid thead th[data-act] { cursor: pointer; }
+table.grid thead th.held { color: var(--fg); font-weight: 600; }
+table.grid .s1 { position: sticky; left: 0; z-index: 3; min-width: 118px; max-width: 118px; text-align: left; padding: 0 8px; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+table.grid .s2 { position: sticky; left: 118px; z-index: 3; min-width: 46px; font-weight: 600; }
+table.grid thead .s1, table.grid thead .s2 { z-index: 4; }
+table.grid td button { width: 100%; height: 100%; min-height: 34px; border: 0; background: transparent; font-weight: 700; font-size: 14px; color: transparent; }
+table.grid td.on button { background: var(--ok-bg); color: var(--ok); }
+table.grid td.miss button { background: var(--bad-bg); }
+table.grid tfoot td { background: var(--surface2); font-weight: 600; }
+.gridnote { font-size: 12px; color: var(--muted); }
+
+/* overview */
+.attrow { display: grid; grid-template-columns: 110px 1fr 46px; gap: 10px; align-items: center; padding: 7px 0; text-decoration: none; color: inherit; }
+.attrow + .attrow { border-top: 1px solid var(--line); }
+.attrow small { display: block; color: var(--muted); font-size: 12px; }
+.attrow b { text-align: right; }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; }
+.list li + li { border-top: 1px solid var(--line); }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+
+/* score */
+.score { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.score li { display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.rank { font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--muted); text-align: center; }
+.rank.top3 { color: var(--gold); }
+.score .who { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.score .who b { overflow-wrap: anywhere; }
+.pts { display: flex; align-items: center; gap: 6px; }
+.pts output { min-width: 40px; text-align: center; font-family: var(--font-display); font-weight: 700; font-size: 20px; }
+.pts .btn { width: 38px; padding: 0; min-height: 38px; font-size: 18px; }
+
+/* eftekad */
+.cards { display: flex; flex-direction: column; gap: 8px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; text-align: left; width: 100%; min-width: 0; }
+button.card { border: 1px solid var(--line); }
+.card .meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--muted); }
+.card .note { font-size: 14px; overflow-wrap: anywhere; white-space: pre-wrap; unicode-bidi: plaintext; }
+.form { display: flex; flex-direction: column; gap: 10px; }
+.form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 500; }
+.form input[type="text"], .form textarea { font: inherit; font-size: 15px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; }
+.form textarea { min-height: 96px; resize: vertical; }
+.form .check { flex-direction: row; align-items: center; gap: 10px; font-size: 15px; color: var(--fg); }
+.form .check input { width: 22px; height: 22px; accent-color: var(--accent); }
+.form .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* events */
+.ev { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.ev > button { width: 100%; display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; border: 0; background: transparent; text-align: left; }
+.dateblock { text-align: center; border-radius: 10px; background: var(--surface2); padding: 5px 0; line-height: 1.1; }
+.dateblock b { display: block; font-family: var(--font-display); font-size: 20px; }
+.dateblock span { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.evtools { padding: 0 14px 14px; }
+.evform { padding: 0 14px 14px; }
+.ev.next { border-color: var(--accent); }
+.ev.past > button { opacity: .6; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 14px; }
+.chip { border: 1px solid var(--line); background: var(--bg); border-radius: 99px; padding: 8px 12px; font-size: 14px; min-height: 38px; }
+.chip[aria-pressed="true"] { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); font-weight: 600; }
+
+#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 40; max-width: calc(100% - 32px); }
+@media (max-width: 420px) {
+  .stat b { font-size: 19px; }
+  .attrow { grid-template-columns: 90px 1fr 42px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bar > i { transition: width .25s ease; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Isaac Class</h1>
+      <div class="sub" id="sub">Attendance, scores and follow-up</div>
+    </div>
+    <div class="status" id="status" role="status"><i></i><span>Connecting</span></div>
+  </header>
+  <div class="tabsbar"><nav class="tabs" id="tabs" aria-label="Sections"></nav></div>
+  <main id="view" aria-live="polite"></main>
+</div>
+<div id="toast" hidden></div>
+<input type="file" id="restoreFile" accept="application/json,.json" hidden>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, onSnapshot, updateDoc, writeBatch, FieldPath } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ===== SETUP: fill in the two PASTE values (copy them from your scoring app's index.html) ===== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAWJhMxgQRPqqmszBXnC2K3WIOIlFmj5a0",
+  authDomain: "isaac-883ff.firebaseapp.com",
+  projectId: "isaac-883ff",
+  appId: "1:812147235399:web:f7be1f63adbfa65cba2f62"
+};
+/* The one shared account everyone signs in with. Colleagues only type the password. */
+const LOGIN_EMAIL = "isaac-class@example.com";
+/* ================================================================================================ */
+
+(function () {
+  "use strict";
+  var TABS = [
+    { id: "overview", label: "Overview" },
+    { id: "odas", label: "Odas", key: "odas" },
+    { id: "fasl", label: "Fasl", key: "fasl" },
+    { id: "3asheya", label: "3asheya", key: "asheya" },
+    { id: "dars-ketab", label: "Dars Ketab", key: "dars" },
+    { id: "nota-ro7eya", label: "Nota Ro7eya", key: "nota" },
+    { id: "mosab2a", label: "Mosab2a", key: "mosab2a" },
+    { id: "nady", label: "Nady" },
+    { id: "score", label: "Score" },
+    { id: "eftekad", label: "Eftekad" },
+    { id: "events", label: "Events" }
+  ];
+  var CLUBS = [["talaat", "Talaat"], ["arba3", "Arba3"], ["khamis", "5amis"]];
+  var DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  function lsGet(k) { try { return localStorage.getItem("isaac-" + k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem("isaac-" + k, v); } catch (e) {} }
+
+  var S = { meta: null, att: {}, score: null, eft: null, events: null, loaded: {}, canWrite: true, live: false };
+  var ui = { week: {}, mode: lsGet("mode") || "roll", showAll: {}, club: lsGet("club") || "talaat", step: 1, order: null, eround: 0, edit: null, evopen: undefined, evedit: null, dedit: null, dmode: "later", dweek: -1 };
+  var fdb = null, auth = null, dirty = false, authState = "pending", unsub = null;
+  var $view = document.getElementById("view");
+
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function students() { return (S.meta && S.meta.students) || []; }
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toast.t); toast.t = setTimeout(function () { t.hidden = true; }, 2600);
+  }
+
+  /* ---------- dates ---------- */
+  function addDays(iso, n) { var p = iso.split("-").map(Number); return new Date(Date.UTC(p[0], p[1] - 1, p[2] + n)); }
+  function fmtShort(d) { return DOW[d.getUTCDay()] + " " + d.getUTCDate() + " " + MON[d.getUTCMonth()]; }
+  function fmtLong(iso) { var d = addDays(iso, 0); return d.getUTCDate() + " " + MON[d.getUTCMonth()] + " " + d.getUTCFullYear(); }
+  function todayIso() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function toIso(dt) { return dt.toISOString().slice(0, 10); }
+  function weekIso(d, i) {
+    if (d.dates && d.dates[i]) return d.dates[i];
+    return d.kind === "labeled" ? null : toIso(addDays(d.start, 7 * i));
+  }
+  function weekLabel(d, i) {
+    var iso = weekIso(d, i);
+    if (d.kind === "labeled") return d.labels[i] + (iso ? " · " + fmtShort(addDays(iso, 0)) : "");
+    return fmtShort(addDays(iso, 0));
+  }
+  function weekShort(d, i) {
+    var iso = weekIso(d, i);
+    if (!iso) return String(i + 1);
+    var x = addDays(iso, 0); return x.getUTCDate() + "/" + (x.getUTCMonth() + 1);
+  }
+  function dateEditor(d, i) {
+    var iso = weekIso(d, i) || "", hasOv = d.dates && d.dates[i];
+    return '<div class="panel form"><h2>Date for ' + esc(d.kind === "labeled" ? d.labels[i] : "this session") + "</h2>" +
+      '<label>Date<input type="date" id="wd-date" value="' + esc(iso) + '"></label>' +
+      '<div class="seg" role="group" aria-label="Apply to"><button data-act="dmode" data-v="later" aria-pressed="' + (ui.dmode === "later") + '">This and all later weeks</button>' +
+      '<button data-act="dmode" data-v="one" aria-pressed="' + (ui.dmode === "one") + '">Only this week</button></div>' +
+      '<div class="row-between"><button class="btn" data-act="dcancel">Cancel</button><span style="display:flex;gap:8px">' +
+      (hasOv ? '<button class="btn" data-act="dreset">Reset</button>' : "") + '<button class="btn primary" data-act="dsave">Save</button></span></div></div>';
+  }
+
+  /* ---------- attendance maths (same rules as the sheet) ---------- */
+  function heldCount(d) { var h = 0; for (var i = 0; i < d.count; i++) if (d.held[i] === "1") h++; return h; }
+  function ticks(d, n) { var m = d.marks[n] || "", t = 0; for (var i = 0; i < d.count; i++) if (m[i] === "1" && d.held[i] === "1") t++; return t; }
+  function pct(d, n) { var h = heldCount(d); return h ? Math.floor(ticks(d, n) / h * 100) : null; }
+  function presentIn(d, i) { return students().filter(function (n) { return (d.marks[n] || "")[i] === "1"; }).length; }
+  function classAvg(d) {
+    var ps = students().map(function (n) { return pct(d, n); }).filter(function (p) { return p !== null; });
+    return ps.length ? Math.round(ps.reduce(function (a, b) { return a + b; }, 0) / ps.length) : null;
+  }
+  function defaultWeek(d) { var i = d.held.indexOf("0"); return i === -1 ? d.count - 1 : i; }
+  function setStr(s, i, v, len) { s = (s || "").padEnd(len, "0"); return s.slice(0, i) + v + s.slice(i + 1); }
+  function pillFor(p) { return p === null ? "" : p >= 75 ? "ok" : p >= 40 ? "warn" : "bad"; }
+
+  /* ---------- saving to Firestore ---------- */
+  function docId(path) {
+    var p = path.split("/");
+    if (p[0] === "att") return "att_" + p[1];
+    return { meta: "meta", score: "score", eftekad: "eftekad", events: "events" }[p[0]];
+  }
+  /* turns {marks:{Name:"0101"}} into field-path/value pairs so only that one entry changes */
+  function flatten(obj, prefix, out) {
+    Object.keys(obj).forEach(function (k) {
+      var v = obj[k], path = prefix.concat(k);
+      if (v && typeof v === "object" && !Array.isArray(v)) flatten(v, path, out);
+      else out.push([new FieldPath(...path), v]);
+    });
+    return out;
+  }
+  function write(path, data) {
+    if (!fdb) return;
+    var args = [doc(fdb, "isaacClass", docId(path))];
+    flatten(data, [], []).forEach(function (x) { args.push(x[0], x[1]); });
+    updateDoc.apply(null, args).catch(function (e) {
+      toast("Could not save that change. Check your connection and try again.");
+    });
+  }
+  function exportData() {
+    var out = { meta: S.meta, att: S.att, score: S.score, eftekad: S.eft, events: S.events };
+    var blob = new Blob([JSON.stringify(out, null, 1)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "isaac-class-backup-" + todayIso() + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  }
+  async function importData(obj) {
+    if (!obj || !obj.meta || !obj.att || !obj.score || !obj.eftekad || !obj.events) { toast("That file is not a class backup"); return; }
+    var b = writeBatch(fdb), col = "isaacClass";
+    b.set(doc(fdb, col, "meta"), obj.meta);
+    b.set(doc(fdb, col, "score"), obj.score);
+    b.set(doc(fdb, col, "eftekad"), obj.eftekad);
+    b.set(doc(fdb, col, "events"), obj.events);
+    Object.keys(obj.att).forEach(function (k) { b.set(doc(fdb, col, "att_" + k), obj.att[k]); });
+    try { await b.commit(); toast("Class data loaded"); } catch (e) { toast("Could not load the file. Check the Firebase rules and your connection."); }
+  }
+  function backupPanel() {
+    return '<div class="panel"><h2>Backup</h2><p class="muted" style="margin:0 0 10px;font-size:13px">Your data is saved automatically in your own Firebase. Download a copy any time, or load a copy back.</p>' +
+      '<div class="row-between"><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" data-act="export">Download backup</button><button class="btn small edit-only" data-act="restore">Load from backup</button></span>' +
+      '<button class="btn small" data-act="logout">Log out</button></div></div>';
+  }
+
+  /* ---------- views ---------- */
+  function route() { var h = location.hash.replace("#", ""); return TABS.some(function (t) { return t.id === h; }) ? h : "overview"; }
+
+  function renderTabs() {
+    var cur = route();
+    document.getElementById("tabs").innerHTML = TABS.map(function (t) {
+      return '<a href="#' + t.id + '"' + (t.id === cur ? ' aria-current="page"' : "") + ">" + esc(t.label) + "</a>";
+    }).join("");
+    var a = document.querySelector('#tabs a[aria-current="page"]');
+    if (a && a.scrollIntoView) { try { a.scrollIntoView({ inline: "center", block: "nearest" }); } catch (e) {} }
+  }
+
+  function emptyState() {
+    if (S.live) {
+      return '<div class="panel empty"><h2>No class data yet</h2><p>Load the data file (isaac-class-data.json) once and everything appears here.</p><button class="btn primary" data-act="restore">Load data file</button></div>';
+    }
+    return '<div class="panel empty"><h2>Loading the class</h2><p>Fetching names and attendance.</p></div>';
+  }
+
+  function attendanceView(key) {
+    var d = S.att[key];
+    if (!d) return emptyState();
+    var names = students();
+    var i = ui.week[key] != null ? Math.min(ui.week[key], d.count - 1) : defaultWeek(d);
+    ui.week[key] = i;
+    var held = heldCount(d), avg = classAvg(d), isHeld = d.held[i] === "1";
+    var html = "";
+    html += '<div class="stats">' +
+      '<div class="stat"><b class="num">' + held + '</b><span>sessions held</span></div>' +
+      '<div class="stat"><b class="num">' + (avg === null ? "–" : avg + "%") + '</b><span>class average</span></div>' +
+      '<div class="stat"><b class="num">' + presentIn(d, i) + "/" + names.length + '</b><span>here on ' + esc(weekShort(d, i)) + "</span></div></div>";
+    html += '<div class="row-between"><div class="seg" role="group" aria-label="View">' +
+      '<button data-act="mode" data-v="roll" aria-pressed="' + (ui.mode === "roll") + '">Roll call</button>' +
+      '<button data-act="mode" data-v="grid" aria-pressed="' + (ui.mode === "grid") + '">Whole sheet</button></div></div>';
+    if (ui.mode === "roll") {
+      var opts = "";
+      for (var w = 0; w < d.count; w++) opts += '<option value="' + w + '"' + (w === i ? " selected" : "") + ">" + esc(weekLabel(d, w)) + (d.held[w] === "1" ? " · held" : "") + "</option>";
+      html += '<div class="weekbar"><button class="btn" data-act="wk" data-dir="-1" aria-label="Previous week"' + (i === 0 ? " disabled" : "") + '>‹</button>' +
+        '<select id="weekSel" data-key="' + key + '" aria-label="Week">' + opts + "</select>" +
+        '<button class="btn" data-act="wk" data-dir="1" aria-label="Next week"' + (i === d.count - 1 ? " disabled" : "") + ">›</button></div>";
+      if (ui.dedit === key && ui.dweek === i) html += dateEditor(d, i);
+      else ui.dedit = ui.dedit === key ? null : ui.dedit;
+      html += '<div class="rollhead"><span class="pill ' + (isHeld ? "ok" : "") + '">' + (isHeld ? "Session held" : "Not held yet") + "</span>" +
+        '<span class="edit-only" style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn small" data-act="dedit">Edit date</button><button class="btn small" data-act="heldtoggle">' + (isHeld ? "Mark as not held" : "Mark as held") + "</button>" +
+        '<button class="btn small" data-act="allin">All here</button><button class="btn small" data-act="allout">Clear</button></span></div>';
+      html += '<ul class="roll">' + names.map(function (n, ni) {
+        var on = (d.marks[n] || "")[i] === "1", p = pct(d, n);
+        return '<li class="' + (on ? "on" : "") + '"><button class="person" data-act="mark" data-n="' + ni + '" aria-pressed="' + on + '">' +
+          '<span class="nm">' + esc(n) + "<small>" + (p === null ? "no sessions held yet" : p + "% overall · " + ticks(d, n) + " of " + held) + "</small></span>" +
+          (p === null ? "" : '<span class="pill ' + pillFor(p) + ' num">' + p + "%</span>") +
+          '<span class="tick" aria-hidden="true">✓</span></button></li>';
+      }).join("") + "</ul>";
+    } else {
+      var lastHeld = d.held.lastIndexOf("1");
+      var shown = ui.showAll[key] ? d.count : Math.min(d.count, Math.max(lastHeld + 6, 8));
+      var head = '<tr><th class="s1">Name</th><th class="s2">%</th>';
+      for (var c = 0; c < shown; c++) head += '<th class="' + (d.held[c] === "1" ? "held" : "") + '" data-act="colhead" data-i="' + c + '" title="' + esc(weekLabel(d, c)) + '">' + esc(weekShort(d, c)) + "</th>";
+      head += "</tr>";
+      var body = names.map(function (n, ni) {
+        var m = d.marks[n] || "", p = pct(d, n), r = '<tr><th class="s1" scope="row">' + esc(n) + '</th><td class="s2 num">' + (p === null ? "–" : p) + "</td>";
+        for (var c = 0; c < shown; c++) {
+          var on = m[c] === "1", cls = on ? "on" : (d.held[c] === "1" ? "miss" : "");
+          r += '<td class="' + cls + '"><button data-act="cell" data-n="' + ni + '" data-i="' + c + '" aria-label="' + esc(n + ", " + weekLabel(d, c)) + '" aria-pressed="' + on + '">✓</button></td>';
+        }
+        return r + "</tr>";
+      }).join("");
+      var foot = '<tr><td class="s1">Present</td><td class="s2"></td>';
+      for (var c2 = 0; c2 < shown; c2++) foot += '<td class="num">' + (d.held[c2] === "1" || presentIn(d, c2) ? presentIn(d, c2) : "") + "</td>";
+      foot += "</tr>";
+      html += '<div class="gridwrap"><table class="grid"><thead>' + head + "</thead><tbody>" + body + "</tbody><tfoot>" + foot + "</tfoot></table></div>";
+      html += '<div class="row-between"><span class="gridnote">Shaded headers are sessions that were held. Tap a header to open that week and change its date.</span>' +
+        (shown < d.count ? '<button class="btn small" data-act="showall">Show all ' + d.count + " weeks</button>" : (d.count > 12 ? '<button class="btn small" data-act="showall">Show fewer weeks</button>' : "")) + "</div>";
+    }
+    return html;
+  }
+
+  function nadyView() {
+    var seg = '<div class="seg" role="group" aria-label="Club">' + CLUBS.map(function (c) {
+      return '<button data-act="club" data-v="' + c[0] + '" aria-pressed="' + (ui.club === c[0]) + '">' + c[1] + "</button>";
+    }).join("") + "</div>";
+    return '<div>' + seg + "</div>" + attendanceView(ui.club);
+  }
+
+  function overviewView() {
+    var names = students();
+    if (!names.length || !Object.keys(S.att).length) return emptyState();
+    var main = [["odas", "Odas", "odas"], ["fasl", "Fasl", "fasl"], ["asheya", "3asheya", "3asheya"], ["dars", "Dars Ketab", "dars-ketab"], ["nota", "Nota Ro7eya", "nota-ro7eya"], ["mosab2a", "Mosab2a", "mosab2a"]];
+    var rows = main.filter(function (m) { return S.att[m[0]]; }).map(function (m) {
+      var d = S.att[m[0]], a = classAvg(d), h = heldCount(d);
+      return '<a class="attrow" href="#' + m[2] + '"><span><b>' + m[1] + "</b><small>" + h + " held</small></span>" +
+        '<span class="bar"><i style="width:' + (a || 0) + '%"></i></span><b class="num">' + (a === null ? "–" : a + "%") + "</b></a>";
+    }).join("");
+    var html = '<div class="panel"><h2>Average attendance</h2>' + rows + "</div>";
+
+    var low = "";
+    if (S.att.odas && S.att.fasl) {
+      var list = names.map(function (n) {
+        var a = pct(S.att.odas, n), b = pct(S.att.fasl, n);
+        var vals = [a, b].filter(function (v) { return v !== null; });
+        return { n: n, a: a, b: b, avg: vals.length ? vals.reduce(function (x, y) { return x + y; }, 0) / vals.length : 0 };
+      }).sort(function (x, y) { return x.avg - y.avg; }).slice(0, 5);
+      low = '<div class="panel"><h2>Lowest attendance</h2><ul class="list">' + list.map(function (r) {
+        return "<li><span>" + esc(r.n) + '</span><span class="muted num" style="font-size:13px">Odas ' + (r.a === null ? "–" : r.a + "%") + " · Fasl " + (r.b === null ? "–" : r.b + "%") + "</span></li>";
+      }).join("") + '</ul><div class="muted" style="font-size:12px;margin-top:8px">Based on Odas and Fasl.</div></div>';
+    }
+    var top = "";
+    if (S.score) {
+      var sc = names.map(function (n) { return [n, S.score.points[n] || 0]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 3);
+      top = '<div class="panel"><h2>Top scores</h2><ul class="list">' + sc.map(function (r, i) {
+        return "<li><span>" + (i + 1) + ". " + esc(r[0]) + '</span><b class="num">' + r[1] + "</b></li>";
+      }).join("") + "</ul></div>";
+    }
+    var ev = "";
+    if (S.events) {
+      var items = S.events.items, nx = nextEvent(items);
+      if (nx >= 0) {
+        var going = names.filter(function (n) { return (S.events.going[n] || "")[nx] === "1"; }).length;
+        ev = '<a class="panel" href="#events" style="text-decoration:none;color:inherit;display:block"><h2>Next event</h2><div class="row-between"><div><b>' + esc(items[nx].name) + '</b><div class="muted" style="font-size:13px">' + esc(fmtLong(items[nx].date)) + '</div></div><span class="pill ok num">' + going + " going</span></div></a>";
+      }
+    }
+    var ef = "";
+    if (S.eft) {
+      var done = names.filter(function (n) { var r = S.eft.students[n]; return r && r.r[0] && r.r[0].done; }).length;
+      ef = '<a class="panel" href="#eftekad" style="text-decoration:none;color:inherit;display:block"><h2>Eftekad, round 1</h2><div class="row-between"><span>' + done + " of " + names.length + ' visited</span><span class="bar" style="width:40%"><i style="width:' + Math.round(done / names.length * 100) + '%"></i></span></div></a>';
+    }
+    html += '<div class="two">' + low + top + "</div>" + '<div class="two">' + ev + ef + "</div>" + backupPanel();
+    return html;
+  }
+
+  function scoreView() {
+    if (!S.score || !students().length) return emptyState();
+    var names = students(), P = S.score.points;
+    if (!ui.order || ui.order.length !== names.length) {
+      ui.order = names.slice().sort(function (a, b) { return (P[b] || 0) - (P[a] || 0); });
+    }
+    var sorted = names.slice().sort(function (a, b) { return (P[b] || 0) - (P[a] || 0); });
+    var stale = sorted.some(function (n, i) { return (P[n] || 0) !== (P[ui.order[i]] || 0); });
+    var max = Math.max.apply(null, names.map(function (n) { return P[n] || 0; }).concat([1]));
+    var html = '<div class="row-between"><span class="muted" style="font-size:13px">Last updated ' + esc(S.score.updated ? fmtLong(S.score.updated) : "–") + "</span>" +
+      '<span class="edit-only" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="seg" role="group" aria-label="Points per tap">' +
+      [1, 5, 10].map(function (v) { return '<button data-act="step" data-v="' + v + '" aria-pressed="' + (ui.step === v) + '">' + v + "</button>"; }).join("") + "</span>" +
+      (stale ? '<button class="btn small primary" data-act="resort">Re-sort</button>' : "") + "</span></div>";
+    html += '<ul class="score">' + ui.order.map(function (n) {
+      var ni = names.indexOf(n), v = P[n] || 0;
+      var rank = 1 + names.filter(function (o) { return (P[o] || 0) > v; }).length;
+      return '<li><span class="rank num ' + (rank <= 3 ? "top3" : "") + '">' + rank + '</span><div class="who"><b>' + esc(n) + '</b><span class="bar"><i style="width:' + Math.round(v / max * 100) + '%"></i></span></div>' +
+        '<div class="pts"><button class="btn edit-only" data-act="sc" data-n="' + ni + '" data-d="-1" aria-label="Take points from ' + esc(n) + '">−</button><output class="num">' + v + '</output><button class="btn edit-only" data-act="sc" data-n="' + ni + '" data-d="1" aria-label="Give points to ' + esc(n) + '">+</button></div></li>';
+    }).join("") + "</ul>";
+    return html;
+  }
+
+  function eftekadView() {
+    if (!S.eft || !students().length) return emptyState();
+    var names = students(), r = ui.eround, done = 0;
+    if (ui.edit !== null) return eftekadEditor(names[ui.edit], r);
+    names.forEach(function (n) { var x = S.eft.students[n]; if (x && x.r[r] && x.r[r].done) done++; });
+    var html = '<div class="row-between"><div class="seg" role="group" aria-label="Round">' + [0, 1, 2].map(function (k) {
+      return '<button data-act="eround" data-v="' + k + '" aria-pressed="' + (r === k) + '">Round ' + (k + 1) + "</button>";
+    }).join("") + '</div><span class="pill ' + (done === names.length ? "ok" : "") + ' num">' + done + " of " + names.length + " visited</span></div>";
+    html += '<div class="cards">' + names.map(function (n, ni) {
+      var x = (S.eft.students[n] || { r: [] }).r[r] || {};
+      return '<button class="card" data-act="eopen" data-n="' + ni + '"><div class="row-between"><b>' + esc(n) + '</b><span class="pill ' + (x.done ? "ok" : "") + '">' + (x.done ? "Visited" : "Not yet") + "</span></div>" +
+        ((x.date || x.by) ? '<div class="meta num">' + (x.date ? "<span>" + esc(x.date) + "</span>" : "") + (x.by ? "<span>Khodam: " + esc(x.by) + "</span>" : "") + "</div>" : "") +
+        (x.note ? '<div class="note" dir="auto">' + esc(x.note) + "</div>" : "") + "</button>";
+    }).join("") + "</div>";
+    return html;
+  }
+
+  function eftekadEditor(name, r) {
+    var x = ((S.eft.students[name] || { r: [] }).r[r]) || {};
+    return '<div class="panel form"><div class="row-between"><h2>' + esc(name) + ' · Round ' + (r + 1) + "</h2></div>" +
+      '<label class="check"><input type="checkbox" id="f-done"' + (x.done ? " checked" : "") + '> Visited</label>' +
+      '<div class="grid2"><label>Date<input type="text" id="f-date" inputmode="numeric" placeholder="dd/mm/yyyy" value="' + esc(x.date || "") + '"></label>' +
+      '<label>Khodam<input type="text" id="f-by" placeholder="e.g. Philo-Fady" value="' + esc(x.by || "") + '"></label></div>' +
+      '<label>Comments<textarea id="f-note" dir="auto">' + esc(x.note || "") + "</textarea></label>" +
+      '<div class="row-between"><button class="btn" data-act="ecancel">Cancel</button><button class="btn primary edit-only" data-act="esave">Save</button></div></div>';
+  }
+
+  function nextEvent(items) {
+    var t = todayIso(), nx = -1;
+    items.forEach(function (e, i) { if (e.date >= t && (nx === -1 || e.date < items[nx].date)) nx = i; });
+    return nx;
+  }
+  function eventsView() {
+    if (!S.events || !students().length) return emptyState();
+    var names = students(), items = S.events.items, t = todayIso(), nx = nextEvent(items);
+    if (ui.evopen === undefined) ui.evopen = nx;
+    var order = items.map(function (e, i) { return i; }).sort(function (a, b) {
+      return items[a].date < items[b].date ? -1 : items[a].date > items[b].date ? 1 : a - b;
+    });
+    return '<div class="muted" style="font-size:13px">Tap an event to see who is going. Tap a name to add or remove them. Open an event to change its date.</div>' + order.map(function (ei) {
+      var e = items[ei];
+      var going = names.filter(function (n) { return (S.events.going[n] || "")[ei] === "1"; }).length;
+      var dt = addDays(e.date, 0), open = ui.evopen === ei, inner = "";
+      if (open && ui.evedit === ei) {
+        inner = '<div class="evform form"><div class="grid2"><label>Name<input type="text" id="ev-name" value="' + esc(e.name) + '"></label>' +
+          '<label>Date<input type="date" id="ev-date" value="' + esc(e.date) + '"></label></div>' +
+          '<div class="row-between"><button class="btn" data-act="evcancel">Cancel</button><button class="btn primary" data-act="evsave">Save</button></div></div>';
+      } else if (open) {
+        inner = '<div class="chips">' + names.map(function (n, ni) {
+          var on = (S.events.going[n] || "")[ei] === "1";
+          return '<button class="chip" data-act="going" data-i="' + ei + '" data-n="' + ni + '" aria-pressed="' + on + '">' + esc(n) + "</button>";
+        }).join("") + '</div><div class="evtools edit-only"><button class="btn small" data-act="evedit" data-i="' + ei + '">Edit date</button></div>';
+      }
+      return '<div class="ev ' + (ei === nx ? "next" : e.date < t ? "past" : "") + '"><button data-act="evopen" data-i="' + ei + '" aria-expanded="' + open + '">' +
+        '<div class="dateblock"><b class="num">' + dt.getUTCDate() + "</b><span>" + MON[dt.getUTCMonth()] + '</span></div>' +
+        "<div><b>" + esc(e.name) + '</b><div class="muted" style="font-size:12px">' + esc(DOW[dt.getUTCDay()]) + " " + esc(fmtLong(e.date)) + (ei === nx ? " · next" : "") + '</div></div>' +
+        '<span class="pill ' + (going ? "ok" : "") + ' num">' + going + " going</span></button>" + inner + "</div>";
+    }).join("");
+  }
+
+  function render() {
+    if (authState !== "in") return;
+    dirty = false;
+    renderTabs();
+    var r = route(), html;
+    var tab = TABS.filter(function (t) { return t.id === r; })[0];
+    if (!S.live && !S.meta) {
+      html = '<div class="panel empty"><h2>Loading the class</h2><p>Fetching names and attendance.</p></div>';
+    } else if (r === "overview") html = overviewView();
+    else if (r === "nady") html = nadyView();
+    else if (r === "score") html = scoreView();
+    else if (r === "eftekad") html = eftekadView();
+    else if (r === "events") html = eventsView();
+    else html = attendanceView(tab.key);
+    var scroller = document.querySelector(".gridwrap");
+    var sl = scroller ? scroller.scrollLeft : 0, st = scroller ? scroller.scrollTop : 0;
+    $view.className = S.canWrite ? "" : "ro";
+    $view.innerHTML = html;
+    var g = document.querySelector(".gridwrap");
+    if (g && scroller) { g.scrollLeft = sl; g.scrollTop = st; }
+    var n = students().length;
+    document.getElementById("sub").textContent = n ? n + " boys · attendance, scores and follow-up" : "Attendance, scores and follow-up";
+  }
+  var raf = 0;
+  function schedule() {
+    /* live updates never rebuild the page under an open editor */
+    if ((ui.edit !== null && route() === "eftekad") || (ui.evedit !== null && route() === "events") || (ui.dedit !== null && ui.dedit === curKey())) { dirty = true; return; }
+    if (raf) return;
+    raf = requestAnimationFrame(function () { raf = 0; render(); });
+  }
+
+  /* ---------- actions ---------- */
+  function curKey() {
+    var r = route(), tab = TABS.filter(function (t) { return t.id === r; })[0];
+    return r === "nady" ? ui.club : tab && tab.key;
+  }
+  function changeMark(key, ni, i, forceVal) {
+    var d = S.att[key], n = students()[ni], cur = ((d.marks[n] || "")[i] === "1");
+    var val = forceVal === undefined ? !cur : forceVal;
+    var payload = { marks: {} };
+    payload.marks[n] = setStr(d.marks[n], i, val ? "1" : "0", d.count);
+    if (val && d.held[i] !== "1") payload.held = setStr(d.held, i, "1", d.count);
+    write("att/" + key, payload);
+  }
+
+  $view.addEventListener("click", function (ev) {
+    var el = ev.target.closest("[data-act]");
+    if (!el) return;
+    var act = el.getAttribute("data-act"), key = curKey(), d = key && S.att[key];
+    var ni = el.getAttribute("data-n") != null ? Number(el.getAttribute("data-n")) : null;
+    switch (act) {
+      case "export": exportData(); break;
+      case "restore":
+        if (S.meta && !window.confirm("Loading a file replaces everything currently saved. Continue?")) break;
+        document.getElementById("restoreFile").click(); break;
+      case "logout": signOut(auth); break;
+      case "mode": ui.mode = el.getAttribute("data-v"); lsSet("mode", ui.mode); render(); break;
+      case "club": ui.dedit = null; ui.club = el.getAttribute("data-v"); lsSet("club", ui.club); render(); break;
+      case "wk": ui.week[key] = Math.max(0, Math.min(d.count - 1, ui.week[key] + Number(el.getAttribute("data-dir")))); render(); break;
+      case "colhead": ui.week[key] = Number(el.getAttribute("data-i")); ui.mode = "roll"; lsSet("mode", "roll"); ui.dedit = null; render(); window.scrollTo(0, 0); break;
+      case "dedit": ui.dedit = key; ui.dweek = ui.week[key]; render(); break;
+      case "dcancel": ui.dedit = null; render(); break;
+      case "dmode":
+        ui.dmode = el.getAttribute("data-v");
+        Array.prototype.forEach.call(el.parentNode.querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", String(b === el)); });
+        break;
+      case "dsave":
+        var nd = document.getElementById("wd-date").value;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(nd)) { toast("Pick a date first"); break; }
+        var w0 = ui.week[key], upd = {};
+        if (ui.dmode === "later") { for (var j = w0; j < d.count; j++) upd[j] = toIso(addDays(nd, 7 * (j - w0))); } else upd[w0] = nd;
+        write("att/" + key, { dates: upd });
+        ui.dedit = null; render();
+        break;
+      case "dreset":
+        var rs = {}; rs[ui.week[key]] = "";
+        write("att/" + key, { dates: rs });
+        ui.dedit = null; render();
+        break;
+      case "showall": ui.showAll[key] = !ui.showAll[key]; render(); break;
+      case "mark": changeMark(key, ni, ui.week[key]); break;
+      case "cell": changeMark(key, ni, Number(el.getAttribute("data-i"))); break;
+      case "heldtoggle":
+        var wi = ui.week[key];
+        write("att/" + key, { held: setStr(d.held, wi, d.held[wi] === "1" ? "0" : "1", d.count) });
+        break;
+      case "allin": case "allout":
+        var marks = {}, i2 = ui.week[key], on = act === "allin", nh = d.held;
+        students().forEach(function (n) { marks[n] = setStr(d.marks[n], i2, on ? "1" : "0", d.count); });
+        var pl = { marks: marks };
+        if (on && nh[i2] !== "1") pl.held = setStr(nh, i2, "1", d.count);
+        write("att/" + key, pl);
+        break;
+      case "step": ui.step = Number(el.getAttribute("data-v")); render(); break;
+      case "resort": ui.order = null; render(); break;
+      case "sc":
+        var nm = students()[ni], v = Math.max(0, (S.score.points[nm] || 0) + ui.step * Number(el.getAttribute("data-d")));
+        var pts = {}; pts[nm] = v;
+        write("score/current", { points: pts, updated: todayIso() });
+        break;
+      case "eround": ui.eround = Number(el.getAttribute("data-v")); render(); break;
+      case "eopen": ui.edit = ni; render(); window.scrollTo(0, 0); break;
+      case "ecancel": ui.edit = null; render(); break;
+      case "esave":
+        var name = students()[ui.edit], rounds = ((S.eft.students[name] || {}).r || []).map(function (x) { return Object.assign({}, x); });
+        while (rounds.length < 3) rounds.push({ done: false, date: "", by: "", note: "" });
+        rounds[ui.eround] = {
+          done: document.getElementById("f-done").checked,
+          date: document.getElementById("f-date").value.trim(),
+          by: document.getElementById("f-by").value.trim(),
+          note: document.getElementById("f-note").value.trim()
+        };
+        var st = {}; st[name] = { r: rounds };
+        write("eftekad/notes", { students: st });
+        ui.edit = null; render();
+        break;
+      case "evopen": var i3 = Number(el.getAttribute("data-i")); ui.evopen = ui.evopen === i3 ? -1 : i3; ui.evedit = null; render(); break;
+      case "evedit": ui.evedit = Number(el.getAttribute("data-i")); render(); break;
+      case "evcancel": ui.evedit = null; render(); break;
+      case "evsave":
+        var evn = document.getElementById("ev-name").value.trim(), evd = document.getElementById("ev-date").value;
+        if (!evn) { toast("Give the event a name"); break; }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(evd)) { toast("Pick a date for the event"); break; }
+        var its = S.events.items.map(function (x) { return Object.assign({}, x); });
+        its[ui.evedit] = Object.assign({}, its[ui.evedit], { name: evn, date: evd });
+        write("events/list", { items: its });
+        ui.evedit = null; render();
+        break;
+      case "going":
+        var ei = Number(el.getAttribute("data-i")), g = students()[ni], cur = (S.events.going[g] || "")[ei] === "1";
+        var gp = {}; gp[g] = setStr(S.events.going[g], ei, cur ? "0" : "1", S.events.items.length);
+        write("events/list", { going: gp });
+        break;
+    }
+  });
+  $view.addEventListener("change", function (ev) {
+    if (ev.target.id === "weekSel") { ui.week[ev.target.getAttribute("data-key")] = Number(ev.target.value); render(); }
+  });
+  window.addEventListener("hashchange", function () { ui.edit = null; ui.evedit = null; ui.dedit = null; render(); window.scrollTo(0, 0); });
+
+  /* ---------- sign in and live data ---------- */
+  function setStatus(kind, text) {
+    var s = document.getElementById("status");
+    s.className = "status " + kind; s.lastElementChild.textContent = text;
+  }
+  function showScreen(html) {
+    document.querySelector(".tabsbar").hidden = true;
+    $view.className = "";
+    $view.innerHTML = html;
+  }
+  function showSetup() {
+    authState = "setup"; setStatus("bad", "Not set up");
+    showScreen('<div class="panel"><h2>One step left</h2><p>Open <b>index.html</b> and paste your Firebase <b>apiKey</b> and <b>appId</b> into the config block at the top of the script. Copy them from your scoring app\'s index.html, then upload the file again.</p></div>');
+  }
+  function showLogin(msg) {
+    authState = "out"; setStatus("", "Signed out");
+    showScreen('<form class="panel form" id="loginForm"><h2>Isaac Class</h2><p class="muted" style="margin:0">Enter the class password to open it.</p>' +
+      '<label>Password<input type="password" id="pw" autocomplete="current-password" required autofocus></label>' +
+      (msg ? '<div><span class="pill bad">' + esc(msg) + "</span></div>" : "") +
+      '<button class="btn primary" type="submit">Open</button></form>');
+  }
+  $view.addEventListener("submit", function (ev) {
+    if (ev.target.id !== "loginForm") return;
+    ev.preventDefault();
+    var pw = document.getElementById("pw").value;
+    var btn = ev.target.querySelector("button"); btn.disabled = true;
+    signInWithEmailAndPassword(auth, LOGIN_EMAIL, pw).catch(function (e) {
+      showLogin(e && e.code === "auth/network-request-failed" ? "No connection. Try again." : "Wrong password. Try again.");
+    });
+  });
+  document.getElementById("restoreFile").addEventListener("change", function (ev) {
+    var f = ev.target.files[0]; ev.target.value = "";
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () { try { importData(JSON.parse(r.result)); } catch (e) { toast("That file is not a class backup"); } };
+    r.readAsText(f);
+  });
+
+  var slowTimer = 0;
+  function startData() {
+    authState = "in";
+    document.querySelector(".tabsbar").hidden = false;
+    setStatus("", "Connecting");
+    clearTimeout(slowTimer);
+    slowTimer = setTimeout(function () { if (!S.live) setStatus("bad", "Slow connection"); }, 10000);
+    render();
+    unsub = onSnapshot(collection(fdb, "isaacClass"), { includeMetadataChanges: true }, function (snap) {
+      var att = {}, meta = null, score = null, eft = null, events = null;
+      snap.docs.forEach(function (d) {
+        var id = d.id, data = d.data();
+        if (id === "meta") meta = data; else if (id === "score") score = data;
+        else if (id === "eftekad") eft = data; else if (id === "events") events = data;
+        else if (id.indexOf("att_") === 0) att[id.slice(4)] = data;
+      });
+      S.meta = meta; S.score = score; S.eft = eft; S.events = events; S.att = att;
+      if (!snap.metadata.fromCache) { S.live = true; clearTimeout(slowTimer); setStatus("live", "Live"); }
+      schedule();
+    }, function () { S.live = false; setStatus("bad", "Can't load data"); schedule(); });
+  }
+
+  function boot() {
+    if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.indexOf("PASTE") === 0) { showSetup(); return; }
+    var app = initializeApp(FIREBASE_CONFIG);
+    auth = getAuth(app);
+    try { fdb = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); }
+    catch (e) { fdb = getFirestore(app); }
+    onAuthStateChanged(auth, function (u) {
+      if (u) startData();
+      else { if (unsub) { unsub(); unsub = null; } S.live = false; S.meta = null; showLogin(); }
+    });
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
